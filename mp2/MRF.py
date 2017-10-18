@@ -160,7 +160,11 @@ def f_reconstruction_error(original_image, reconstructed_image):
         reconstruction_error: MSE of reconstruction. 
     """
     reconstruction_error = 0
-
+    x_size,y_size,z = original_image.shape
+    for y in range(y_size):
+        for x in range(x_size):
+            reconstruction_error += (original_image[y][x][0]-reconstructed_image[y][x][0])**2
+    reconstruction_error /= x_size*y_size*1.0
     return reconstruction_error
 
 

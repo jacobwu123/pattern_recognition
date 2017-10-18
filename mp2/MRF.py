@@ -117,8 +117,9 @@ def load_image(input_file_path, binarization_threshold):
         I: binarized image.
     """
     I = pl.imread(input_file_path)
-    for i in range(len(I)):
-        for j in range(len(I[0])):
+    x_size,y_size,z = I.shape
+    for i in range(y_size):
+        for j in range(x_size):
             if I[i][j][0] > binarization_threshold:
                 I[i][j][0] = 1
             else:
@@ -140,7 +141,6 @@ def inject_noise(image):
         noisy_image: Noisy image
     """
     noisy_image = image.copy()
-    print(noisy_image.shape)
     x_size,y_size,z = noisy_image.shape
     probabilityMatrix = np.random.rand(x_size,y_size)
     for y in range(y_size):
@@ -160,6 +160,7 @@ def f_reconstruction_error(original_image, reconstructed_image):
         reconstruction_error: MSE of reconstruction. 
     """
     reconstruction_error = 0
+
     return reconstruction_error
 
 

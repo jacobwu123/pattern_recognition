@@ -19,7 +19,7 @@ def MRF(I, J, eta, zeta, beta):
     Output:
         denoised_image: The denoised image after one MRF iteration.   
     """  
-    x_size,y_size = np.ndarray.shape(I)
+    x_size,y_size,z = np.ndarray.shape(I)
     x = np.arange(len(x_size))
     y = np.arange(len(y_size))
     np.random.shuffle(x)
@@ -27,10 +27,14 @@ def MRF(I, J, eta, zeta, beta):
     leastEnergy = 0
     for pixel_y_coordinate in y:
         for pixel_x_coordinate in x:
-            energy_evaluation(I,J,pixel_x_coordinate,pixel_y_coordinate,
-                I[pixel_y_coordinate][pixel_x_coordinate],eta,zeta,beta)
-             
-    return denoised_image
+            leastEnergy =  energy_evaluation(I,J,pixel_x_coordinate,pixel_y_coordinate,1,eta,zeta,beta)
+            temp = energy_evaluation(I,J,pixel_x_coordinate,pixel_y_coordinate,-1,eta,zeta,beta)
+            if leastEnergy > temp:
+                J[pixel_y_coordinate][pixel_x_coordinate][0] = 1
+            else:
+                J[pixel_y_coordinate][pixel_x_coordinate][0] = -1
+
+    return J
  
 
 def energy_evaluation(I, J, pixel_x_coordinate, pixel_y_coordinate, 
@@ -100,6 +104,7 @@ def not_converged(image_old, image_new, itr, conv_margin):
     Output:  
         has_converged: a boolean being true in case of convergence
     """   
+
     return has_converged
 
 

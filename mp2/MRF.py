@@ -58,6 +58,7 @@ def energy_evaluation(I, J, pixel_x_coordinate, pixel_y_coordinate,
         energy: Energy value.
 
     """
+
     
     return energy
 
@@ -151,7 +152,7 @@ def inject_noise(image):
     for y in range(y_size):
         for x in range(x_size):
             if probabilityMatrix[y][x] < 0.1 :
-                noisy_image[y][x][0] = 255 - noisy_image[y][x][0]
+                noisy_image[y][x][0] = - noisy_image[y][x][0]
     return noisy_image
 
 

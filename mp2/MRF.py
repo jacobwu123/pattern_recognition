@@ -17,24 +17,25 @@ def MRF(I, J, eta, zeta, beta):
         zeta: Weight of the latent-latent pairwise ptential.
         beta: Weight of unary term.   
     Output:
-        denoised_image: The denoised image after one MRF iteration.   
-    """  
-    x_size,y_size,z = np.ndarray.shape(I)
-    x = np.arange(len(x_size))
-    y = np.arange(len(y_size))
+        denoised_image: The denoised image after one MRF iteration. 
+
+    """ 
+    denoised = J.copy() 
+    x_size,y_size = I.shape
+    x = np.arange(x_size)
+    y = np.arange(y_size)
     np.random.shuffle(x)
     np.random.shuffle(y)
-    leastEnergy = 0
     for pixel_y_coordinate in y:
         for pixel_x_coordinate in x:
-            leastEnergy =  energy_evaluation(I,J,pixel_x_coordinate,pixel_y_coordinate,1,eta,zeta,beta)
-            temp = energy_evaluation(I,J,pixel_x_coordinate,pixel_y_coordinate,-1,eta,zeta,beta)
+            leastEnergy =  energy_evaluation(I,denoised,pixel_x_coordinate,pixel_y_coordinate,1,eta,zeta,beta)
+            temp = energy_evaluation(I,denoised,pixel_x_coordinate,pixel_y_coordinate,-1,eta,zeta,beta)
             if leastEnergy > temp:
-                J[pixel_y_coordinate][pixel_x_coordinate][0] = 1
+                denoised[pixel_y_coordinate][pixel_x_coordinate] = -1
             else:
-                J[pixel_y_coordinate][pixel_x_coordinate][0] = -1
+                denoised[pixel_y_coordinate][pixel_x_coordinate] = 1
 
-    return J
+    return denoised
  
 
 def energy_evaluation(I, J, pixel_x_coordinate, pixel_y_coordinate, 
@@ -58,9 +59,23 @@ def energy_evaluation(I, J, pixel_x_coordinate, pixel_y_coordinate,
         energy: Energy value.
 
     """
-
+    x_size,y_size = I.shape
+    J[pixel_y_coordinate][pixel_x_coordinate] = pixel_value
+    unary = pixel_value
+    latent_latent = 0
+    if pixel_y_coordinate -1 >= 0:
+        latent_latent += J[pixel_y_coordinate][pixel_x_coordinate]*J[pixel_y_coordinate-1][pixel_x_coordinate]
+    if pixel_x_coordinate + 1 < x_size:
+        latent_latent += J[pixel_y_coordinate][pixel_x_coordinate]*J[pixel_y_coordinate][pixel_x_coordinate+1]
+    if pixel_y_coordinate + 1 < y_size:
+        latent_latent += J[pixel_y_coordinate][pixel_x_coordinate]*J[pixel_y_coordinate+1][pixel_x_coordinate]
+    if pixel_x_coordinate -1 >= 0:
+        latent_latent += J[pixel_y_coordinate][pixel_x_coordinate]*J[pixel_y_coordinate][pixel_x_coordinate-1]
     
-    return energy
+    observed_latent = J[pixel_y_coordinate][pixel_x_coordinate]*I[pixel_y_coordinate][pixel_x_coordinate]
+    
+
+    return -zeta*latent_latent-eta*observed_latent-beta*unary
 
 
 def greedy_search(noisy_image, eta, zeta, beta, conv_margin):
@@ -83,6 +98,14 @@ def greedy_search(noisy_image, eta, zeta, beta, conv_margin):
     
     # Noisy Image.
     I = noisy_image.copy()
+    denoised_image = MRF(I,I,eta,zeta,beta)
+    old_image = I
+    itr = 1
+    for i in range(10):
+        if not_converged(old_image,denoised_image,itr,conv_margin):
+            break
+        old_image = denoised_image
+        denoised_image = MRF(I,old_image,eta,zeta,beta)
 
     return denoised_image
 
@@ -105,8 +128,14 @@ def not_converged(image_old, image_new, itr, conv_margin):
     Output:  
         has_converged: a boolean being true in case of convergence
     """   
-
-    return has_converged
+    count = 0
+    x_size,y_size = image_old.shape
+    for i in range(y_size):
+        for j in range(x_size):
+            if image_old[i][j] != image_new[i][j]:
+                count += 1
+    print(count)
+    return (count*1.0/(x_size*y_size)) < conv_margin
 
 
 def load_image(input_file_path, binarization_threshold):
@@ -123,13 +152,14 @@ def load_image(input_file_path, binarization_threshold):
         I: binarized image.
     """
     I = pl.imread(input_file_path)
-    x_size,y_size,z = I.shape
+    I = I[:,:,0]
+    x_size,y_size= I.shape
     for i in range(y_size):
         for j in range(x_size):
-            if I[i][j][0] > binarization_threshold:
-                I[i][j][0] = 1
+            if I[i][j] > binarization_threshold:
+                I[i][j] = 1
             else:
-                I[i][j][0] = -1  
+                I[i][j] = -1  
     return I 
 
 
@@ -147,12 +177,12 @@ def inject_noise(image):
         noisy_image: Noisy image
     """
     noisy_image = image.copy()
-    x_size,y_size,z = noisy_image.shape
+    x_size,y_size = noisy_image.shape
     probabilityMatrix = np.random.rand(x_size,y_size)
     for y in range(y_size):
         for x in range(x_size):
             if probabilityMatrix[y][x] < 0.1 :
-                noisy_image[y][x][0] = - noisy_image[y][x][0]
+                noisy_image[y][x] = - noisy_image[y][x]
     return noisy_image
 
 
@@ -165,12 +195,12 @@ def f_reconstruction_error(original_image, reconstructed_image):
     output: 
         reconstruction_error: MSE of reconstruction. 
     """
-    reconstruction_error = 0
-    x_size,y_size,z = original_image.shape
+    reconstruction_error = 0.0
+    x_size,y_size = original_image.shape
     for y in range(y_size):
         for x in range(x_size):
-            reconstruction_error += (original_image[y][x][0]-reconstructed_image[y][x][0])**2
-    reconstruction_error /= x_size*y_size*1.0
+            reconstruction_error += (original_image[y][x]-reconstructed_image[y][x])**2
+    reconstruction_error /= (x_size*y_size*1.0)
     return reconstruction_error
 
 
@@ -215,7 +245,7 @@ def parse_arguments(parser):
 
     parser.add_argument('--convergence_margin', 
         type=float, 
-        default=0.999, 
+        default=0.001, 
         metavar='<convergence_margin>', 
         help='Convergence margin.')
 
@@ -256,6 +286,7 @@ def main():
 
     # Plot the Original Image
     plot_image(I, 'Original Image', 'img/Original_Image')
+    plot_image(J, 'Noised version', 'img/Noised_Image')
 
     # Plot the Denoised Image
     plot_image(newJ, 'Denoised version', 'img/Denoised_Image')

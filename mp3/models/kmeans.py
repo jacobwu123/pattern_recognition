@@ -31,9 +31,9 @@ class KMeans(object):
             x(numpy.ndarray): Array containing the feature of dimension (N,
             ndims).
         """
-        for i in range(x._max_iter):
-            r_ik = _e_step(x)
-            _m_step(x,r_ik)
+        for i in range(self._max_iter):
+            r_ik = self._e_step(x)
+            self._m_step(x,r_ik)
 
     def _e_step(self, x):
         """Update cluster assignment.

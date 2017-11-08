@@ -20,7 +20,9 @@ class KMeans(object):
 
         # Randomly initialize model parameters using Gaussian distribution of 0
         # mean and unit variance.
-        self._mu = None  # np.array of size (n_components, n_dims)
+        mean = 0.
+        var = 1.
+        self._mu = np.random.normal(mean,var,(self._n_components,self._n_dims))  # np.array of size (n_components, n_dims)
 
     def fit(self, x):
         """Runs EM step for max_iter number of times.
@@ -29,7 +31,9 @@ class KMeans(object):
             x(numpy.ndarray): Array containing the feature of dimension (N,
             ndims).
         """
-        pass
+        for i in range(x._max_iter):
+            r_ik = _e_step(x)
+            _m_step(x,r_ik)
 
     def _e_step(self, x):
         """Update cluster assignment.

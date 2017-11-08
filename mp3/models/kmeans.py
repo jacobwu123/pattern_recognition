@@ -113,7 +113,14 @@ class KMeans(object):
         """
 
         self.cluster_label_map = []
-        pass
+        r_ik = self.get_posterior(x)
+        N, = r_ik.shape
+        for k in range(self._n_components):
+            counter = np.zeros(10)
+            for i in range(N):
+                if r_ik[i] == k:
+                    counter[int(y[i])] += 1
+            self.cluster_label_map.append(np.amax(counter)) 
 
     def supervised_predict(self, x):
         """Predict a label for each example in x.

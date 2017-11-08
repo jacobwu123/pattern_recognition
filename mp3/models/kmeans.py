@@ -62,7 +62,16 @@ class KMeans(object):
             r_ik(numpy.ndarray): Array containing the cluster assignment of
                 each example, dimension (N,).
         """
-        pass
+        np.seterr(divide='ignore', invalid='ignore')
+        N, = r_ik.shape
+        for k in range(self._n_components):
+            count = 0
+            accumlator = np.zeros((self._n_dims,))
+            for i in range(N):
+                if r_ik[k] == k:
+                    count += 1
+                    accumlator += x[i]
+            self._mu[k] = np.divide(accumlator,float(count))
 
     def get_posterior(self, x):
         """Computes cluster assignment.

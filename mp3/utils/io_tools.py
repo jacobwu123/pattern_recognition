@@ -18,6 +18,12 @@ def read_dataset(input_file_path):
         images scaled to the range of [0,1].
         (2) label (np.ndarray): Array of dimension (N,) containing the label.
     """
-    label = None
-    feature = None
+    convertfunc = lambda x: float(x)/256.
+    cols = ()
+    con = {}
+    for i in range(1,785):
+        cols = cols + (i,)
+        con[i] = convertfunc
+    label = genfromtxt(input_file_path,delimiter=",",usecols=(0,))
+    feature = genfromtxt(input_file_path,delimiter=",",converters=con,usecols=cols)
     return feature, label

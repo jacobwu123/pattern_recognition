@@ -48,7 +48,7 @@ class KMeans(object):
             r_ik(numpy.ndarray): Array containing the cluster assignment of
                 each example, dimension (N,).
         """
-        r_ik = None
+        r_ik = self.get_posterior(x)
         return r_ik
 
     def _m_step(self, x, r_ik):
@@ -77,7 +77,13 @@ class KMeans(object):
             r_ik(numpy.ndarray): Array containing the cluster assignment of
             each example, dimension (N,).
         """
-        r_ik = None
+        N,ndims = x.shape
+        r_ik = np.zeros((N,))
+        for i in range(N):
+            J = np.zeros((self._n_components,))
+            for k in range(self._n_components):
+                J[k] = (np.linalg.norm(x[i]-self._mu[k]))**2
+            r_ik[i] = np.argmin(J)
         return r_ik
 
     def supervised_fit(self, x, y):

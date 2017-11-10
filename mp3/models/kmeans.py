@@ -7,6 +7,7 @@ from scipy import stats
 
 
 class KMeans(object):
+
     def __init__(self, n_dims, n_components=10, max_iter=100):
         """Initialize a KMeans GMM model
         Args:
@@ -22,7 +23,9 @@ class KMeans(object):
         # mean and unit variance.
         mean = 0.
         var = 1.
-        self._mu = np.random.normal(mean,var,(self._n_components,self._n_dims))  # np.array of size (n_components, n_dims)
+        # np.array of size (n_components, n_dims)
+        self._mu = np.random.normal(
+            mean, var, (self._n_components, self._n_dims))
 
     def fit(self, x):
         """Runs EM step for max_iter number of times.
@@ -33,7 +36,7 @@ class KMeans(object):
         """
         for i in range(self._max_iter):
             r_ik = self._e_step(x)
-            self._m_step(x,r_ik)
+            self._m_step(x, r_ik)
 
     def _e_step(self, x):
         """Update cluster assignment.
@@ -48,8 +51,7 @@ class KMeans(object):
             r_ik(numpy.ndarray): Array containing the cluster assignment of
                 each example, dimension (N,).
         """
-        r_ik = self.get_posterior(x)
-        return r_ik
+        return self.get_posterior(x)
 
     def _m_step(self, x, r_ik):
         """Update cluster mean.
@@ -62,16 +64,14 @@ class KMeans(object):
             r_ik(numpy.ndarray): Array containing the cluster assignment of
                 each example, dimension (N,).
         """
-        np.seterr(divide='ignore', invalid='ignore')
-        N, = r_ik.shape
+        N, = r_ik.shape  # N = 7000
+        count = np.zeros((self._n_components,))
+        accumlator = np.zeros((self._n_components, self._n_dims))
+        for i in range(N):
+            count[r_ik[i]] += 1
+            accumlator[r_ik[i]] += x[i]
         for k in range(self._n_components):
-            count = 0
-            accumlator = np.zeros((self._n_dims,))
-            for i in range(N):
-                if r_ik[k] == k:
-                    count += 1
-                    accumlator += x[i]
-            self._mu[k] = np.divide(accumlator,float(count))
+            self._mu[k] = (accumlator[k] + 1e-4) / (count[k] + 1e-4)
 
     def get_posterior(self, x):
         """Computes cluster assignment.
@@ -86,13 +86,17 @@ class KMeans(object):
             r_ik(numpy.ndarray): Array containing the cluster assignment of
             each example, dimension (N,).
         """
-        N,ndims = x.shape
-        r_ik = np.zeros((N,))
-        for i in range(N):
-            J = np.zeros((self._n_components,))
-            for k in range(self._n_components):
-                J[k] = (np.linalg.norm(x[i]-self._mu[k]))**2
-            r_ik[i] = np.argmin(J)
+        N, ndims = x.shape  # N=7000
+        r_value = np.empty((N,))
+        r_value[:] = np.inf
+        r_ik = np.empty((N,), dtype=int)
+        for k in range(self._n_components):
+            mu = self._mu[k]
+            for i in range(N):  # go over every example
+                d = np.linalg.norm(x[i] - mu)
+                if d < r_value[i]:
+                    r_value[i] = d
+                    r_ik[i] = k
         return r_ik
 
     def supervised_fit(self, x, y):
@@ -111,16 +115,16 @@ class KMeans(object):
                 ndims).
             y(numpy.ndarray): Array containing the label of dimension (N,)
         """
-
         self.cluster_label_map = []
         r_ik = self.get_posterior(x)
         N, = r_ik.shape
         for k in range(self._n_components):
-            counter = np.zeros(10)
+            counter = np.zeros(10, dtype=int)
             for i in range(N):
                 if r_ik[i] == k:
                     counter[int(y[i])] += 1
-            self.cluster_label_map.append(np.amax(counter)) 
+            self.cluster_label_map.append(np.argmax(counter))
+        print(self.cluster_label_map)
 
     def supervised_predict(self, x):
         """Predict a label for each example in x.
@@ -133,7 +137,9 @@ class KMeans(object):
             y_hat(numpy.ndarray): Array containing the predicted label for each
                 x, dimension (N,)
         """
-
         r_ik = self.get_posterior(x)
         y_hat = []
+        N, = r_ik.shape
+        for i in range(N):
+            y_hat.append(self.cluster_label_map[int(r_ik[i])])
         return np.array(y_hat)

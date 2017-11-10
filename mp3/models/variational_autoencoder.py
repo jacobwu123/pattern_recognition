@@ -10,6 +10,7 @@ from tensorflow.contrib import layers
 class VariationalAutoencoder(object):
     """Varational Autoencoder.
     """
+
     def __init__(self, ndims=784, nlatent=2):
         """Initializes a VAE
 
@@ -53,7 +54,8 @@ class VariationalAutoencoder(object):
             z (tf.Tensor): Random z sampled of dimension (None, 2)
         """
 
-        z = None
+        z = tf.add(tf.multiply(tf.sqrt(tf.exp(z_log_var)), tf.random_normal(tf.shape(z_log_var), 0, 1)),
+                   z_mean)
         return z
 
     def _encoder(self, x):
@@ -76,9 +78,27 @@ class VariationalAutoencoder(object):
             z_log_var(tf.Tensor): The latent log variance, tensor of dimension
                 (None, 2).
         """
+        hidden_1_layer = {'weights': tf.Variable(tf.random_normal([784, 100], stddev=0.01)),
+                          'biases': tf.Variable(tf.random_normal([100]))}
 
-        z_mean = None
-        z_log_var = None
+        hidden_2_layer = {'weights': tf.Variable(tf.random_normal([100, 50], stddev=0.01)),
+                          'biases': tf.Variable(tf.random_normal([50]))}
+
+        mean = {'weights': tf.Variable(tf.random_normal([50, 2], stddev=0.01)),
+                'biases': tf.Variable(tf.zeros([2]))}
+
+        log = {'weights': tf.Variable(tf.random_normal([50, 2], stddev=0.01)),
+               'biases': tf.Variable(tf.zeros([2]))}
+
+        layer_1 = tf.nn.softplus(tf.add(tf.matmul(x, hidden_1_layer['weights'],),
+                                        hidden_1_layer['biases']))
+        layer_2 = tf.nn.softplus(tf.add(tf.matmul(layer_1,  hidden_2_layer['weights']),
+                                        hidden_2_layer['biases']))
+
+        z_mean = tf.add(tf.matmul(layer_2, mean['weights']), mean['biases'])
+        z_log_var = tf.add(
+            tf.matmul(layer_2, log['weights']), log['biases']) + 1e-7
+
         return z_mean, z_log_var
 
     def _decoder(self, z):
@@ -93,7 +113,20 @@ class VariationalAutoencoder(object):
         Returns:
             f(tf.Tensor): Predicted score, tensor of dimension (None, 784).
         """
-        f = None
+        hidden_1_layer = {'weights': tf.Variable(tf.random_normal([2, 50], stddev=0.1)),
+                          'biases': tf.Variable(tf.zeros([50]))}
+
+        hidden_2_layer = {'weights': tf.Variable(tf.random_normal([50, 100], stddev=0.1)),
+                          'biases': tf.Variable(tf.zeros([100]))}
+
+        out = {'weights': tf.Variable(tf.random_normal([100, self._ndims], stddev=0.1)),
+               'biases': tf.Variable(tf.zeros([self._ndims]))}
+
+        layer_1 = tf.nn.softplus(tf.add(tf.matmul(z, hidden_1_layer['weights']),
+                                        hidden_1_layer['biases']))
+        layer_2 = tf.nn.softplus(tf.add(tf.matmul(layer_1,  hidden_2_layer['weights']),
+                                        hidden_2_layer['biases']))
+        f = tf.add(tf.matmul(layer_2,  out['weights']), out['biases'])
         return f
 
     def _latent_loss(self, z_mean, z_log_var):
@@ -107,7 +140,9 @@ class VariationalAutoencoder(object):
             latent_loss: Tensor of dimension (None,). Sum the loss over
             dimension 1.
         """
-        latent_loss = None
+        latent_loss = -0.5 * tf.reduce_sum(1 + z_log_var
+                                           - tf.square(z_mean)
+                                           - tf.exp(z_log_var), 1)
         return latent_loss
 
     def _reconstruction_loss(self, f, y):
@@ -119,7 +154,7 @@ class VariationalAutoencoder(object):
         Returns:
             Tensor for dimension (None,). Sum the loss over dimension 1.
         """
-        return None
+        return tf.nn.l2_loss(tf.subtract(y, f))
 
     def loss(self, f, y, z_mean, z_var):
         """Computes the total loss.
@@ -131,7 +166,7 @@ class VariationalAutoencoder(object):
             (1) averged loss of latent_loss and reconstruction loss over
                 dimension 0.
         """
-        return None
+        return tf.reduce_mean(self._reconstruction_loss(f, y) + self._latent_loss(z_mean, z_var),0)
 
     def update_op(self, loss, learning_rate):
         """Creates the update optimizer.
@@ -144,7 +179,7 @@ class VariationalAutoencoder(object):
         Returns:
             (1) Update opt tensorflow operation.
         """
-        return None
+        return tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
     def generate_samples(self, z_np):
         """Generates a random sample from the provided z_np.
@@ -156,4 +191,6 @@ class VariationalAutoencoder(object):
             (1) The sampled images (numpy.ndarray) of dimension (batch_size,
                 748).
         """
-        return None
+        image = self.session.run([self.outputs_tensor],
+                                 feed_dict={self.z: z_np})
+        return np.clip(image, 0, 1)

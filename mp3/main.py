@@ -27,7 +27,6 @@ def main(_):
     # Load dataset.
     unlabeled_data, _ = io_tools.read_dataset('data/train_no_label.csv')
     n_dims = unlabeled_data.shape[1]
-
     # Initialize model.
     if FLAGS.model_type == 'kmeans':
         model = KMeans(n_dims, n_components=FLAGS.n_components,
@@ -38,7 +37,6 @@ def main(_):
 
     # Unsupervised training.
     model.fit(unlabeled_data)
-
     # Supervised training.
     train_data, train_label = io_tools.read_dataset(('data/'
                                                      'train_with_label.csv'))

@@ -54,7 +54,8 @@ class VariationalAutoencoder(object):
             z (tf.Tensor): Random z sampled of dimension (None, 2)
         """
 
-        z = tf.add(tf.multiply(tf.sqrt(tf.exp(z_log_var)), tf.random_normal(tf.shape(z_log_var), 0, 1)),
+        z = tf.add(tf.multiply(tf.sqrt(tf.exp(z_log_var)),
+                               tf.random_normal(tf.shape(z_log_var), 0, 1)),
                    z_mean)
         return z
 
@@ -166,7 +167,7 @@ class VariationalAutoencoder(object):
             (1) averged loss of latent_loss and reconstruction loss over
                 dimension 0.
         """
-        return tf.reduce_mean(self._reconstruction_loss(f, y) + self._latent_loss(z_mean, z_var),0)
+        return tf.reduce_mean(self._reconstruction_loss(f, y) + self._latent_loss(z_mean, z_var), 0)
 
     def update_op(self, loss, learning_rate):
         """Creates the update optimizer.

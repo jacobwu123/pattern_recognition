@@ -13,8 +13,8 @@ from models.gaussian_mixture_model import GaussianMixtureModel
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_integer('max_iter', 100, 'Number of EM steps to run.')
-flags.DEFINE_integer('n_components', 10, 'Number of componenets in kMeans')
+flags.DEFINE_integer('max_iter', 20, 'Number of EM steps to run.')
+flags.DEFINE_integer('n_components', 20, 'Number of componenets in kMeans')
 flags.DEFINE_string('model_type', 'kmeans', 'gmm or kmeans')
 
 

@@ -119,8 +119,12 @@ def get_action_index(readout_t,epsilon,t):
 		action_index: the index of the action to be taken next.
 
 	"""
-	
-	
+	r = np.random.random()
+	if t < OBSERVE or r < epsilon:
+		action_index = np.random.randint(0,len(readout_t))
+	else:
+		action_index = np.argmax(readout_t)
+
 	return action_index
 
 
@@ -137,6 +141,8 @@ def scale_down_epsilon(epsilon,t):
 		the updated epsilon
 
 	"""
+	if t > OBSERVE and epsilon > FINAL_EPSILON:
+		epsilon -= ((INITIAL_EPSILON - FINAL_EPSILON) / EXPLORE )
 
 	return epsilon
 
@@ -154,7 +160,10 @@ def run_selected_action(a_t,s_t,game_state):
 		r_t: the reward	
 		terminal: indicating if the game terminated
 	"""
-
+	x_t, r_t, terminal = game_state.frame_step(a_t)
+	x_t = cv2.cvtColor(cv2.resize(x_t, (80, 80)), cv2.COLOR_BGR2GRAY)
+	ret, x_t = cv2.threshold(x_t,1,255,cv2.THRESH_BINARY)
+	s_t1 = np.stack((x_t,s_t[:,:,0],s_t[:,:,1],s_t[:,:,2]), axis = 2)
 	return s_t1,r_t,terminal 
 
 
@@ -168,24 +177,31 @@ def compute_cost(target_q,a_t,q_value):
 		cost
 	""" 
 	# TO DO: Q-value for the action.
-
+	q_star = q_value[np.argmax(a_t)]
 	# TO DO: Q-Learning Cost.
-
+	cost = (target_q - q_star)**2
 	return cost
 
 
-def compute_target_q(next_state_batch,r_batch,readout_j1_batch):
+def compute_target_q(next_state_batch,r_batch,readout_j1_batch,minibatch):
 	""" Compute the target Q-value. 
 	Args:
 		next_state_batch
 		r_batch
 		readout_j1_batch
+		minibatch
 	Returns:
 		target_q_batch: target Q value
 
 	Hint: distinguish two cases: (1) terminal state and (2) non terminal states
 	"""
-
+	target_q_batch = []
+	for i in range(BATCH):
+		if not minibatch[i][4]:
+			target_q_batch.append(r_batch[i] + GAMMA * max(readout_j1_batch[i]))
+		else:
+			target_q_batch.append(r_batch[i])
+	
 	return target_q_batch
 
 
@@ -285,7 +301,7 @@ def trainNetwork(s, readout, sess):
 			# Compute the target Q-Value
 			readout_j1_batch = readout.eval(feed_dict = {s : s_j1_batch})
 
-			target_q_batch = compute_target_q(s_j1_batch,r_batch,readout_j1_batch)
+			target_q_batch = compute_target_q(s_j1_batch,r_batch,readout_j1_batch,minibatch)
 
 			# Perform gradient step.
 			train_step.run(feed_dict = {

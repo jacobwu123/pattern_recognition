@@ -16,7 +16,7 @@ ACTIONS = 3
 GAMMA = 0.99 
 
 # Timesteps to observe before training.
-OBSERVE = 100. 
+OBSERVE = 5000. 
 
 # Frames over which to anneal epsilon.
 EXPLORE = 5000. 

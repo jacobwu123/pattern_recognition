@@ -16,7 +16,7 @@ ACTIONS = 3
 GAMMA = 0.99 
 
 # Timesteps to observe before training.
-OBSERVE = 5000. 
+OBSERVE = 100. 
 
 # Frames over which to anneal epsilon.
 EXPLORE = 5000. 
@@ -177,9 +177,10 @@ def compute_cost(target_q,a_t,q_value):
 		cost
 	""" 
 	# TO DO: Q-value for the action.
-	q_star = q_value[np.argmax(a_t)]
+	q_star =tf.gather(q_value,tf.argmax(a_t,axis=1), axis=1) 
 	# TO DO: Q-Learning Cost.
-	cost = (target_q - q_star)**2
+	cost = tf.reduce_sum(tf.squared_difference(target_q,q_star))
+
 	return cost
 
 
@@ -243,7 +244,6 @@ def trainNetwork(s, readout, sess):
 	x_t = cv2.cvtColor(cv2.resize(x_t, (80, 80)), cv2.COLOR_BGR2GRAY)
 	ret, x_t = cv2.threshold(x_t,1,255,cv2.THRESH_BINARY)
 	s_t = np.stack((x_t, x_t, x_t, x_t), axis = 2)
-
 	# Save and load model checkpoints.
 	saver = tf.train.Saver()
 	sess.run(tf.initialize_all_variables())
@@ -279,7 +279,6 @@ def trainNetwork(s, readout, sess):
 		for i in range(0, K):
 			# Run the selected action and observe next state and reward.
 			s_t1,r_t,terminal = run_selected_action(a_t,s_t,game_state)
-
 			# Store the transition in the replay memory D.
 			D.append((s_t, a_t, r_t, s_t1, terminal))
 			if len(D) > REPLAY_MEMORY:
@@ -288,9 +287,8 @@ def trainNetwork(s, readout, sess):
 
 		# Start training once the observation phase is over.
 		if (t > OBSERVE):
-
 			# Sample a minibatch to train on.
-			minibatch = random.sample(D, BATCH)
+			minibatch = random.sample(list(D), BATCH)
 
 			# Get the batch variables.
 			s_j_batch = [d[0] for d in minibatch]
@@ -329,7 +327,7 @@ def trainNetwork(s, readout, sess):
 		else:
 			state = "train"
 		print("TIMESTEP", t, "/ STATE", state, "/ EPSILON", epsilon, "/ ACTION", action_index, "/ REWARD", r_t, "/ Q_MAX %e" % np.max(readout_t))
-
+		
 
 
 

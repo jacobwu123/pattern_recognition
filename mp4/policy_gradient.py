@@ -43,9 +43,13 @@ def discount_rewards(r):
         Args: 1D float array of rewards.
         Returns: an array with discounted rewards. 
     """
+    discounted_r = np.zeros_like(r, dtype=np.float)
     for i in range(len(r)):
         for j in range(len(r) - i):
-            r[i] += GAMMA**j * r[i + j]
+            discounted_r[i] += GAMMA**j * r[i + j]
+
+    discounted_r -= np.mean(discounted_r)
+    discounted_r /= np.std(discounted_r)
     return r
 
 
